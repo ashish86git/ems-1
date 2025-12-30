@@ -7,7 +7,6 @@ import numpy as np
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
 
-
 # =========================
 # DB CONNECTION (Postgres)
 # =========================
@@ -27,12 +26,10 @@ def get_db_connection():
             sslmode='require'
         )
 
-
 # =========================
 # SMART COLUMN CLEANING
 # =========================
 def clean_columns(df):
-    # Sabhi headers ko uppercase aur underscores mein badalna
     df.columns = (
         df.columns.str.strip()
         .str.upper()
@@ -40,7 +37,6 @@ def clean_columns(df):
         .str.replace(r"[^\w\s]", "", regex=True)
     )
 
-    # Mapping: Excel Header -> Database Column Name
     mapping = {
         'VEHICLE': 'VEHICLE_NO',
         'VEHICLE_NUMBER': 'VEHICLE_NO',
@@ -54,6 +50,12 @@ def clean_columns(df):
     }
     return df.rename(columns=mapping)
 
+# =========================
+# WELCOME PAGE (Add kiya gaya hai)
+# =========================
+@app.route("/")
+def welcome():
+    return render_template("welcome.html")
 
 # =========================
 # UPLOAD LOGIC
@@ -67,16 +69,13 @@ def upload_file():
             return redirect(request.url)
 
         try:
-            # Step 1: Read File
             if file.filename.endswith(".csv"):
                 df = pd.read_csv(file)
             else:
                 df = pd.read_excel(file)
 
-            # Step 2: Clean Columns
             df = clean_columns(df)
 
-            # Step 3: Handle Missing Columns (Crash proofing)
             db_cols = [
                 "VEHICLE_NO", "INDENT_ID", "TRIP_DATE", "FROM_LOCATION",
                 "TO_LOCATION", "CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT",
@@ -86,7 +85,6 @@ def upload_file():
                 if col not in df.columns:
                     df[col] = None
 
-            # Step 4: Data Type Cleaning
             df["TRIP_DATE"] = pd.to_datetime(df["TRIP_DATE"], errors="coerce")
 
             num_cols = ["CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT", "OTHER_EXP", "TOTAL_TRIP_COST"]
@@ -94,8 +92,6 @@ def upload_file():
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
             df = df.replace({np.nan: None})
-
-            # Step 5: DB Insertion
 
             conn = get_db_connection()
             cur = conn.cursor()
@@ -131,14 +127,14 @@ def upload_file():
             return redirect(url_for("upload_file"))
 
         except Exception as e:
-            # Browser par exact error dikhayega ab
             flash(f"Error: {str(e)}", "danger")
             return redirect(request.url)
 
     return render_template("upload.html")
 
-
-# Dashboard Route (Ensure table columns match fetch)
+# =========================
+# DASHBOARD
+# =========================
 @app.route("/dashboard")
 def dashboard():
     conn = get_db_connection()
@@ -146,7 +142,6 @@ def dashboard():
     cur.execute("SELECT * FROM vehicle_expenses ORDER BY trip_date DESC NULLS LAST")
     rows = cur.fetchall()
 
-    # Chart logic: Group by Vehicle
     cur.execute("SELECT vehicle_no, SUM(total_trip_cost) FROM vehicle_expenses GROUP BY vehicle_no")
     chart_data = cur.fetchall()
 
@@ -160,6 +155,7 @@ def dashboard():
         totals=[float(c[1]) for c in chart_data]
     )
 
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Heroku ke liye port configuration
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
