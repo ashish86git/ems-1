@@ -35,7 +35,7 @@ def get_db_connection():
 # COLUMN CLEANING (Exact Matching)
 # =========================
 def clean_columns(df):
-    # Sabhi headers ko uppercase aur underscores mein badalna
+    # Headers ko standardize karein
     df.columns = (
         df.columns.str.strip()
         .str.upper()
@@ -43,25 +43,23 @@ def clean_columns(df):
         .str.replace(r"[^\w\s]", "", regex=True)
     )
 
+    # Mapping: Excel Headers -> Code Variables
     mapping = {
-        # FROM Mapping
         'FROM_LOCATION': 'FROM',
         'SOURCE': 'FROM',
         'START_POINT': 'FROM',
-        'PICKUP': 'FROM',
-        'ORIGIN': 'FROM',
-
-        # TO Mapping
         'TO_LOCATION': 'TO',
         'DESTINATION': 'TO',
         'END_POINT': 'TO',
-        'DROPOFF': 'TO',
-
-        # Baki columns (For safety)
+        'VEHICLE_NO': 'VEHICLE_NO',
+        'VEHICLE_NUMBER': 'VEHICLE_NO',
         'VEHICLE': 'VEHICLE_NO',
+        'INDENT_NO': 'INDENT_ID',
         'INDENT': 'INDENT_ID',
         'TRIP_DATE': 'DATE',
-        'TOTAL_COST': 'TOTAL_TRIP_COST'
+        'REMARKS': 'REMARK',
+        'TOTAL_COST': 'TOTAL_TRIP_COST',
+        'TOTAL_TRIP_COST': 'TOTAL_TRIP_COST'
     }
 
     df = df.rename(columns=mapping)
@@ -80,12 +78,12 @@ def welcome():
 def upload_file():
     if request.method == "POST":
         file = request.files.get("file")
-        if not file or not file.filename.endswith((".xlsx", ".csv")):
-            flash("Invalid file format! Only CSV or Excel allowed.", "danger")
+        if not file:
+            flash("No file selected!", "danger")
             return redirect(request.url)
 
         try:
-            # Heroku par file save karne ki jagah direct memory (stream) se read karna best hai
+            # Memory mein file read karna (Heroku friendly)
             if file.filename.endswith(".csv"):
                 df = pd.read_csv(file)
             else:
@@ -93,7 +91,9 @@ def upload_file():
 
             df = clean_columns(df)
 
-            # Matching with the keys used in INSERT logic
+            # Debugging ke liye (Heroku logs mein dikhega)
+            print(f"DEBUG: Processed Columns: {df.columns.tolist()}")
+
             required_cols = [
                 "VEHICLE_NO", "INDENT_ID", "DATE", "FROM", "TO",
                 "CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT",
@@ -102,23 +102,18 @@ def upload_file():
 
             missing = set(required_cols) - set(df.columns)
             if missing:
-                flash(f"Missing columns: {', '.join(missing)} ❌", "danger")
+                flash(f"Columns Missing in Excel: {', '.join(missing)} ❌", "warning")
                 return redirect(request.url)
 
-            # =========================
-            # DATA CLEANING
-            # =========================
+            # Data Cleaning
             df["DATE"] = pd.to_datetime(df["DATE"], errors="coerce")
-
             numeric_cols = ["CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT", "OTHER_EXP", "TOTAL_TRIP_COST"]
             for col in numeric_cols:
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
             df = df.replace({np.nan: None})
 
-            # =========================
-            # DB INSERT
-            # =========================
+            # DB Insertion
             conn = get_db_connection()
             cur = conn.cursor()
             for _, r in df.iterrows():
@@ -143,11 +138,12 @@ def upload_file():
             cur.close()
             conn.close()
 
-            flash("File uploaded successfully! ✅", "success")
+            flash("Data Uploaded Successfully! ✅", "success")
             return redirect(url_for("upload_file"))
 
         except Exception as e:
-            flash(f"System Error: {str(e)}", "danger")
+            print(f"CRITICAL ERROR: {str(e)}")  # Heroku logs me check karein
+            flash(f"Upload Failed: Internal Error. Check Excel Format.", "danger")
             return redirect(request.url)
 
     return render_template("upload.html")
