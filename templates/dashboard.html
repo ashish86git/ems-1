@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h4 class="mb-3">📊 Vehicle Expense Dashboard</h4>
+
+<div class="row mb-3 align-items-end">
+    <div class="col-md-4">
+        <label for="vehicleFilter" class="form-label fw-semibold">Filter by Vehicle:</label>
+        <select id="vehicleFilter" class="form-select">
+            <option value="all">All Vehicles</option>
+            {% for v in vehicles %}
+            <option value="{{ v }}">{{ v }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-8 text-end">
+        <button onclick="exportTableToExcel()" class="btn btn-success">
+            Export Excel 📥
+        </button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped" id="expenseTable">
+        <thead class="table-dark">
+            <tr>
+                <th>Vehicle</th>
+                <th>Indent</th>
+                <th>Date</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Charging Cost</th>
+                <th>Toll</th>
+                <th>Driver On Account</th>
+                <th>Other Exp</th>
+                <th>Remark</th>
+                <th>Total Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+            <tr data-vehicle="{{ r[1] }}" data-date="{{ r[3] }}" data-cost="{{ r[11] }}">
+                <td>{{ r[1] }}</td>
+                <td>{{ r[2] }}</td>
+                <td>{{ r[3] }}</td>
+                <td>{{ r[4] }}</td>
+                <td>{{ r[5] }}</td>
+                <td>₹ {{ r[6] }}</td>
+                <td>₹ {{ r[7] }}</td>
+                <td>₹ {{ r[8] }}</td>
+                <td>₹ {{ r[9] }}</td>
+                <td>{{ r[10] }}</td>
+                <td>₹ {{ r[11] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-7">
+        <div class="card p-3 h-100">
+            <h5>📈 Date-wise Trend & Prediction</h5>
+            <canvas id="dateTrendChart"></canvas>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card p-3 h-100">
+            <h5>🚚 Vehicle Wise Total Cost</h5>
+            <canvas id="vehicleSummaryChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ================= DATA PREPARATION =================
+const allRowsData = [
+    {% for r in rows %}
+    {
+        vehicle: "{{ r[1] }}",
+        date: "{{ r[3] }}",
+        cost: parseFloat("{{ r[11] }}") || 0
+    },
+    {% endfor %}
+];
+
+let dateChart, summaryChart;
+
+function initCharts(filteredData, vehicleLabel) {
+    // --- Chart 1: Date-wise Trend Logic ---
+    filteredData.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const dateGrouped = filteredData.reduce((acc, curr) => {
+        acc[curr.date] = (acc[curr.date] || 0) + curr.cost;
+        return acc;
+    }, {});
+
+    if (dateChart) dateChart.destroy();
+    dateChart = new Chart(document.getElementById('dateTrendChart'), {
+        type: 'line',
+        data: {
+            labels: Object.keys(dateGrouped),
+            datasets: [{
+                label: 'Daily Cost (₹)',
+                data: Object.values(dateGrouped),
+                borderColor: '#dc3636',
+                backgroundColor: 'rgba(220, 54, 54, 0.1)',
+                fill: true,
+                trendlineLinear: { style: "green", lineStyle: "dotted", width: 2 }
+            }]
+        }
+    });
+
+    // --- Chart 2: Vehicle-wise Summary Logic ---
+    const vehicleGrouped = filteredData.reduce((acc, curr) => {
+        acc[curr.vehicle] = (acc[curr.vehicle] || 0) + curr.cost;
+        return acc;
+    }, {});
+
+    if (summaryChart) summaryChart.destroy();
+    summaryChart = new Chart(document.getElementById('vehicleSummaryChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(vehicleGrouped),
+            datasets: [{
+                label: 'Total Cost by Vehicle (₹)',
+                data: Object.values(vehicleGrouped),
+                backgroundColor: '#f97316'
+            }]
+        },
+        options: { indexAxis: 'y' } // Horizontal bar for better look
+    });
+}
+
+// ================= FILTER LOGIC =================
+const vehicleFilter = document.getElementById('vehicleFilter');
+vehicleFilter.addEventListener('change', function() {
+    const val = this.value;
+    const tableRows = document.querySelectorAll('#expenseTable tbody tr');
+
+    // Table filter
+    tableRows.forEach(row => {
+        row.style.display = (val === 'all' || row.dataset.vehicle === val) ? '' : 'none';
+    });
+
+    // Charts update
+    const filtered = (val === 'all') ? allRowsData : allRowsData.filter(d => d.vehicle === val);
+    initCharts(filtered, val);
+});
+
+// ================= EXPORT TO EXCEL LOGIC =================
+function exportTableToExcel() {
+    const table = document.getElementById("expenseTable");
+    const rows = Array.from(table.querySelectorAll("tr"));
+
+    // Sirf wahi rows lein jo visible hain (filter ke baad)
+    const visibleRows = rows.filter(row => row.style.display !== 'none');
+
+    // Naya table structure Excel ke liye
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.table_to_sheet(table);
+
+    // Filtered data ko saaf karne ke liye hum manually data create karenge
+    const data = visibleRows.map(row => {
+        return Array.from(row.querySelectorAll("th, td")).map(cell => cell.innerText);
+    });
+
+    const newWs = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, newWs, "VehicleExpenses");
+    XLSX.writeFile(wb, "Vehicle_Expense_Report.xlsx");
+}
+
+// Initial Load
+initCharts(allRowsData, 'all');
+</script>
+
+{% endblock %}
