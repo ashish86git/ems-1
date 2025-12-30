@@ -3,24 +3,21 @@ import pandas as pd
 import psycopg2
 import os
 import numpy as np
-import io
 
 app = Flask(__name__)
-
-# =========================
-# CONFIGURATION
-# =========================
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")
-DATABASE_URL = os.environ.get('DATABASE_URL')
 
 
+# =========================
+# DB CONNECTION (Postgres)
+# =========================
 def get_db_connection():
+    DATABASE_URL = os.environ.get('DATABASE_URL')
     if DATABASE_URL:
-        # Heroku connection logic
         url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
         return psycopg2.connect(url, sslmode='require')
     else:
-        # Local/RDS testing logic
+        # Local fallback
         return psycopg2.connect(
             host='c7s7ncbk19n97r.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com',
             user='u7tqojjihbpn7s',
@@ -32,10 +29,10 @@ def get_db_connection():
 
 
 # =========================
-# COLUMN CLEANING (Exact Matching)
+# SMART COLUMN CLEANING
 # =========================
 def clean_columns(df):
-    # Headers ko standardize karein
+    # Sabhi headers ko uppercase aur underscores mein badalna
     df.columns = (
         df.columns.str.strip()
         .str.upper()
@@ -43,79 +40,66 @@ def clean_columns(df):
         .str.replace(r"[^\w\s]", "", regex=True)
     )
 
-    # Mapping: Excel Headers -> Code Variables
+    # Mapping: Excel Header -> Database Column Name
     mapping = {
-        'FROM_LOCATION': 'FROM',
-        'SOURCE': 'FROM',
-        'START_POINT': 'FROM',
-        'TO_LOCATION': 'TO',
-        'DESTINATION': 'TO',
-        'END_POINT': 'TO',
-        'VEHICLE_NO': 'VEHICLE_NO',
-        'VEHICLE_NUMBER': 'VEHICLE_NO',
         'VEHICLE': 'VEHICLE_NO',
-        'INDENT_NO': 'INDENT_ID',
+        'VEHICLE_NUMBER': 'VEHICLE_NO',
         'INDENT': 'INDENT_ID',
-        'TRIP_DATE': 'DATE',
-        'REMARKS': 'REMARK',
-        'TOTAL_COST': 'TOTAL_TRIP_COST',
-        'TOTAL_TRIP_COST': 'TOTAL_TRIP_COST'
+        'INDENT_NO': 'INDENT_ID',
+        'DATE': 'TRIP_DATE',
+        'FROM': 'FROM_LOCATION',
+        'TO': 'TO_LOCATION',
+        'CHARGING': 'CHARGING_COST',
+        'TOTAL_COST': 'TOTAL_TRIP_COST'
     }
+    return df.rename(columns=mapping)
 
-    df = df.rename(columns=mapping)
-    return df
 
 # =========================
-# ROUTES
+# UPLOAD LOGIC
 # =========================
-
-@app.route("/")
-def welcome():
-    return render_template("welcome.html")
-
-
 @app.route("/upload", methods=["GET", "POST"])
 def upload_file():
     if request.method == "POST":
         file = request.files.get("file")
         if not file:
-            flash("No file selected!", "danger")
+            flash("Please select a file.", "warning")
             return redirect(request.url)
 
         try:
-            # Memory mein file read karna (Heroku friendly)
+            # Step 1: Read File
             if file.filename.endswith(".csv"):
                 df = pd.read_csv(file)
             else:
                 df = pd.read_excel(file)
 
+            # Step 2: Clean Columns
             df = clean_columns(df)
 
-            # Debugging ke liye (Heroku logs mein dikhega)
-            print(f"DEBUG: Processed Columns: {df.columns.tolist()}")
-
-            required_cols = [
-                "VEHICLE_NO", "INDENT_ID", "DATE", "FROM", "TO",
-                "CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT",
+            # Step 3: Handle Missing Columns (Crash proofing)
+            db_cols = [
+                "VEHICLE_NO", "INDENT_ID", "TRIP_DATE", "FROM_LOCATION",
+                "TO_LOCATION", "CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT",
                 "OTHER_EXP", "REMARK", "TOTAL_TRIP_COST"
             ]
+            for col in db_cols:
+                if col not in df.columns:
+                    df[col] = None
 
-            missing = set(required_cols) - set(df.columns)
-            if missing:
-                flash(f"Columns Missing in Excel: {', '.join(missing)} ❌", "warning")
-                return redirect(request.url)
+            # Step 4: Data Type Cleaning
+            df["TRIP_DATE"] = pd.to_datetime(df["TRIP_DATE"], errors="coerce")
 
-            # Data Cleaning
-            df["DATE"] = pd.to_datetime(df["DATE"], errors="coerce")
-            numeric_cols = ["CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT", "OTHER_EXP", "TOTAL_TRIP_COST"]
-            for col in numeric_cols:
+            num_cols = ["CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT", "OTHER_EXP", "TOTAL_TRIP_COST"]
+            for col in num_cols:
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
             df = df.replace({np.nan: None})
 
-            # DB Insertion
+            # Step 5: DB Insertion
+
             conn = get_db_connection()
             cur = conn.cursor()
+
             for _, r in df.iterrows():
                 cur.execute("""
                     INSERT INTO vehicle_expenses (
@@ -124,16 +108,21 @@ def upload_file():
                         charging_cost, toll,
                         driver_on_account, other_exp,
                         remark, total_trip_cost
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
-                    str(r["VEHICLE_NO"]), str(r["INDENT_ID"]),
-                    r["DATE"].date() if r["DATE"] else None,
-                    str(r["FROM"]), str(r["TO"]),
-                    float(r["CHARGING_COST"]), float(r["TOLL"]),
-                    float(r["DRIVER_ON_ACCOUNT"]), float(r["OTHER_EXP"]),
+                    str(r["VEHICLE_NO"]) if r["VEHICLE_NO"] else "",
+                    str(r["INDENT_ID"]) if r["INDENT_ID"] else "",
+                    r["TRIP_DATE"].date() if r["TRIP_DATE"] else None,
+                    str(r["FROM_LOCATION"]) if r["FROM_LOCATION"] else "",
+                    str(r["TO_LOCATION"]) if r["TO_LOCATION"] else "",
+                    float(r["CHARGING_COST"]),
+                    float(r["TOLL"]),
+                    float(r["DRIVER_ON_ACCOUNT"]),
+                    float(r["OTHER_EXP"]),
                     str(r["REMARK"]) if r["REMARK"] else "",
                     float(r["TOTAL_TRIP_COST"])
                 ))
+
             conn.commit()
             cur.close()
             conn.close()
@@ -142,42 +131,34 @@ def upload_file():
             return redirect(url_for("upload_file"))
 
         except Exception as e:
-            print(f"CRITICAL ERROR: {str(e)}")  # Heroku logs me check karein
-            flash(f"Upload Failed: Internal Error. Check Excel Format.", "danger")
+            # Browser par exact error dikhayega ab
+            flash(f"Error: {str(e)}", "danger")
             return redirect(request.url)
 
     return render_template("upload.html")
 
 
+# Dashboard Route (Ensure table columns match fetch)
 @app.route("/dashboard")
 def dashboard():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM vehicle_expenses ORDER BY trip_date DESC NULLS LAST")
+    rows = cur.fetchall()
 
-        # Dashboard data
-        cur.execute("SELECT * FROM vehicle_expenses ORDER BY trip_date DESC")
-        rows = cur.fetchall()
+    # Chart logic: Group by Vehicle
+    cur.execute("SELECT vehicle_no, SUM(total_trip_cost) FROM vehicle_expenses GROUP BY vehicle_no")
+    chart_data = cur.fetchall()
 
-        # Chart data
-        cur.execute("""
-            SELECT vehicle_no, SUM(total_trip_cost)
-            FROM vehicle_expenses
-            GROUP BY vehicle_no
-        """)
-        chart = cur.fetchall()
+    cur.close()
+    conn.close()
 
-        cur.close()
-        conn.close()
-
-        return render_template(
-            "dashboard.html",
-            rows=rows,
-            vehicles=[c[0] for c in chart],
-            totals=[float(c[1]) for c in chart]
-        )
-    except Exception as e:
-        return f"Dashboard Error: {str(e)}"
+    return render_template(
+        "dashboard.html",
+        rows=rows,
+        vehicles=[c[0] for c in chart_data],
+        totals=[float(c[1]) for c in chart_data]
+    )
 
 
 if __name__ == "__main__":
