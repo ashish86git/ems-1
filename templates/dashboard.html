@@ -6,173 +6,230 @@
         --navbar-red: #ef4444;
         --navbar-red-dark: #dc2626;
         --orange: #f97316;
-        --bg: #ffffff;
-        --light-gray: #f3f4f6;
+        --bg: #f8fafc;
+        --border-color: #e2e8f0;
+        --text-main: #1e293b;
     }
 
-    body { background-color: #f9fafb; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg); font-family: 'Inter', sans-serif; }
 
-    /* Header & Action Buttons */
+    /* Innovative Header */
     .company-header {
         background: linear-gradient(135deg, var(--navbar-red-dark) 0%, var(--orange) 100%);
         color: white;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(239, 68, 68, 0.2);
+        margin-bottom: 2.5rem;
+        position: relative;
+        overflow: hidden;
     }
 
     .btn-export {
-        background-color: #ffffff;
-        color: var(--navbar-red-dark);
-        border: none;
-        font-weight: 700;
-        transition: 0.3s;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+        font-weight: 600;
+        transition: 0.4s;
+        border-radius: 12px;
     }
-    .btn-export:hover { background-color: var(--light-gray); color: var(--navbar-red); }
+    .btn-export:hover { background: white; color: var(--navbar-red-dark); transform: scale(1.05); }
 
-    /* Summary Cards */
+    /* Smart Stat Cards */
     .stat-card {
         border: none;
-        border-bottom: 4px solid var(--orange);
-        border-radius: 10px;
+        border-radius: 16px;
         background: white;
-        transition: transform 0.2s;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.02);
     }
-    .stat-card:hover { transform: translateY(-5px); }
-    .card-total { border-bottom: 4px solid var(--navbar-red-dark); }
+    .stat-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(0,0,0,0.08); }
+    .card-total { background: #1e293b; color: white; }
+    .card-total .text-muted { color: #94a3b8 !important; }
 
     /* Filters */
     .filter-section {
         background: white;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        padding: 25px;
     }
-    .form-label { color: #4b5563; font-size: 0.85rem; letter-spacing: 0.5px; }
 
-    /* Charts Symmetric Sizing */
-    .chart-box {
+    /* Innovative Table Design */
+    .table-container {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
         background: white;
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px solid #e5e7eb;
-        height: 400px; /* Fixed height for both charts */
-        display: flex;
-        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.04);
     }
-    .chart-container { flex-grow: 1; position: relative; }
 
-    /* Table Styling */
-    .table-container { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: white; }
-    .thead-company { background-color: var(--navbar-red); color: white; }
-    .table thead th { font-weight: 600; border: none; padding: 15px; }
+    .table-responsive { max-height: 650px; overflow-y: auto; }
+
+    .table thead th {
+        background-color: #f1f5f9;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        padding: 20px;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .table tbody tr { border-bottom: 1px solid #f8fafc; }
+    .table tbody tr:hover { background-color: #fdf2f2; }
+
+    .table tbody td {
+        padding: 16px 20px;
+        font-size: 0.88rem;
+        color: var(--text-main);
+    }
+
+    /* Smart Badges & Typography */
+    .vehicle-badge {
+        background: #fff1f2;
+        color: #e11d48;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        border: 1px solid #ffe4e6;
+    }
+
+    .price-font { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    .total-highlight { background-color: #fff1f2; font-weight: 800; color: #be123c; border-radius: 8px; }
 </style>
 
 <div class="container-fluid py-4">
-    <div class="company-header d-flex justify-content-between align-items-center mb-4">
+    <div class="company-header d-flex justify-content-between align-items-center">
         <div>
-            <h3 class="fw-bold mb-0">Vehicle Expense Dashboard</h3>
-            <p class="mb-0 opacity-75 small text-uppercase fw-semibold">Fleet Performance & Cost Tracking</p>
+            <h2 class="fw-bold mb-1">Fleet Expense Analytics</h2>
+            <p class="mb-0 opacity-75 fw-medium">Smart Cost Tracking & Performance Management</p>
         </div>
-        <button onclick="exportTableToExcel()" class="btn btn-export shadow-sm px-4">
-            EXPORT EXCEL 📥
+        <button onclick="exportTableToExcel()" class="btn btn-export px-4 py-2">
+            <i class="fas fa-file-download me-2"></i> EXPORT REPORT
         </button>
     </div>
 
-    <div class="row g-4 mb-4 text-center">
-        <div class="col-md-4">
-            <div class="card stat-card shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-muted fw-bold small mb-2">CHARGING COST</h6>
-                    <h2 class="fw-bold mb-0" style="color: var(--orange);" id="statCharging">₹ 0</h2>
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body p-4">
+                    <p class="text-muted small fw-bold text-uppercase mb-2">Charging</p>
+                    <h3 class="fw-bold mb-0" style="color: var(--orange);" id="statCharging">₹ 0</h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card stat-card shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-muted fw-bold small mb-2">TOLL CHARGES</h6>
-                    <h2 class="fw-bold mb-0" style="color: var(--orange);" id="statToll">₹ 0</h2>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body p-4">
+                    <p class="text-muted small fw-bold text-uppercase mb-2">Toll</p>
+                    <h3 class="fw-bold mb-0" style="color: var(--orange);" id="statToll">₹ 0</h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card stat-card card-total shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-muted fw-bold small mb-2">TOTAL TRIP COST</h6>
-                    <h2 class="fw-bold mb-0" style="color: var(--navbar-red-dark);" id="statTotal">₹ 0</h2>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body p-4">
+                    <p class="text-muted small fw-bold text-uppercase mb-2">Other Cost</p>
+                    <h3 class="fw-bold mb-0" style="color: var(--orange);" id="statOther">₹ 0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card card-total">
+                <div class="card-body p-4">
+                    <p class="text-muted small fw-bold text-uppercase mb-2">Grand Total</p>
+                    <h3 class="fw-bold mb-0 text-white" id="statTotal">₹ 0</h3>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="filter-section p-4 shadow-sm mb-4">
-        <div class="row g-3">
+    <div class="filter-section mb-4 shadow-sm">
+        <div class="row g-4">
             <div class="col-md-4">
-                <label class="form-label fw-bold">VEHICLE FILTER</label>
-                <select id="vehicleFilter" class="form-select bg-light border-0">
-                    <option value="all">View All Vehicles</option>
+                <label class="form-label fw-bold small text-muted">VEHICLE FILTER</label>
+                <select id="vehicleFilter" class="form-select border-0 bg-light rounded-3">
+                    <option value="all">All Fleet Units</option>
                     {% for v in vehicles %}
                     <option value="{{ v }}">{{ v }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label fw-bold">FROM DATE</label>
-                <input type="date" id="fromDate" class="form-control bg-light border-0">
+                <label class="form-label fw-bold small text-muted">START DATE</label>
+                <input type="date" id="fromDate" class="form-control border-0 bg-light rounded-3">
             </div>
             <div class="col-md-4">
-                <label class="form-label fw-bold">TO DATE</label>
-                <input type="date" id="toDate" class="form-control bg-light border-0">
+                <label class="form-label fw-bold small text-muted">END DATE</label>
+                <input type="date" id="toDate" class="form-control border-0 bg-light rounded-3">
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
+    <div class="row g-4 mb-5">
         <div class="col-lg-7">
-            <div class="chart-box shadow-sm">
-                <h6 class="fw-bold text-muted mb-3">EXPENDITURE TREND</h6>
-                <div class="chart-container">
-                    <canvas id="dateTrendChart"></canvas>
-                </div>
+            <div class="bg-white p-4 rounded-4 border shadow-sm" style="height: 400px;">
+                <h6 class="fw-bold text-muted mb-4 small">DAILY EXPENDITURE TREND</h6>
+                <canvas id="dateTrendChart"></canvas>
             </div>
         </div>
         <div class="col-lg-5">
-            <div class="chart-box shadow-sm">
-                <h6 class="fw-bold text-muted mb-3">VEHICLE-WISE SUMMARY</h6>
-                <div class="chart-container">
-                    <canvas id="vehicleSummaryChart"></canvas>
-                </div>
+            <div class="bg-white p-4 rounded-4 border shadow-sm" style="height: 400px;">
+                <h6 class="fw-bold text-muted mb-4 small">VEHICLE-WISE DISTRIBUTION</h6>
+                <canvas id="vehicleSummaryChart"></canvas>
             </div>
         </div>
     </div>
 
     <div class="table-container shadow-sm mb-5">
-        <table class="table table-hover align-middle mb-0" id="expenseTable">
-            <thead class="thead-company">
-                <tr>
-                    <th>Vehicle</th>
-                    <th>Indent</th>
-                    <th>Date</th>
-                    <th>Trip Route</th>
-                    <th>Charging</th>
-                    <th>Toll</th>
-                    <th class="text-end">Total Cost</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for r in rows %}
-                <tr data-vehicle="{{ r[1] }}" data-date="{{ r[3] }}">
-                    <td class="fw-bold">{{ r[1] }}</td>
-                    <td>{{ r[2] }}</td>
-                    <td>{{ r[3] }}</td>
-                    <td class="small text-muted">{{ r[4] }} <span class="text-danger">→</span> {{ r[5] }}</td>
-                    <td>₹ {{ r[6] }}</td>
-                    <td>₹ {{ r[7] }}</td>
-                    <td class="text-end fw-bold text-dark">₹ {{ r[11] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="expenseTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Vehicle No</th>
+                        <th>Indent ID</th>
+                        <th>Trip Date</th>
+                        <th>From / To</th>
+                        <th>Charging</th>
+                        <th>Toll</th>
+                        <th>Driver A/C</th>
+                        <th>Other</th>
+                        <th>Remark</th>
+                        <th class="text-end">Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rows %}
+                    <tr data-vehicle="{{ r[1] }}" data-date="{{ r[3] }}">
+                        <td class="text-muted fw-bold">#{{ r[0] }}</td>
+                        <td><span class="vehicle-badge">{{ r[1] }}</span></td>
+                        <td><small class="fw-bold text-secondary">{{ r[2] }}</small></td>
+                        <td class="small">{{ r[3] }}</td>
+                        <td>
+                            <div class="small fw-bold">{{ r[4] }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">to {{ r[5] }}</div>
+                        </td>
+                        <td class="price-font text-muted">₹{{ r[6] }}</td>
+                        <td class="price-font text-muted">₹{{ r[7] }}</td>
+                        <td class="price-font text-muted">₹{{ r[8] }}</td>
+                        <td class="price-font text-danger">₹{{ r[9] }}</td>
+                        <td class="small text-wrap" style="max-width: 150px; color: #64748b;">{{ r[10] }}</td>
+                        <td class="text-end fw-bold">
+                            <span class="p-2 total-highlight price-font">₹{{ r[11] }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -183,10 +240,14 @@
 const allRowsData = [
     {% for r in rows %}
     {
+        id: "{{ r[0] }}",
         vehicle: "{{ r[1] }}",
+        indent: "{{ r[2] }}",
         date: "{{ r[3] }}",
         charging: parseFloat("{{ r[6] }}") || 0,
         toll: parseFloat("{{ r[7] }}") || 0,
+        driver_ac: parseFloat("{{ r[8] }}") || 0,
+        other: parseFloat("{{ r[9] }}") || 0,
         cost: parseFloat("{{ r[11] }}") || 0
     },
     {% endfor %}
@@ -195,19 +256,21 @@ const allRowsData = [
 let dateChart, summaryChart;
 
 function updateDashboard(filteredData) {
-    // 1. Update Cards Logic
+    // 1. Stat Logic (Added Other Cost)
     const summary = filteredData.reduce((acc, curr) => {
         acc.charging += curr.charging;
         acc.toll += curr.toll;
+        acc.other += curr.other;
         acc.total += curr.cost;
         return acc;
-    }, { charging: 0, toll: 0, total: 0 });
+    }, { charging: 0, toll: 0, other: 0, total: 0 });
 
     document.getElementById('statCharging').innerText = `₹ ${summary.charging.toLocaleString('en-IN')}`;
     document.getElementById('statToll').innerText = `₹ ${summary.toll.toLocaleString('en-IN')}`;
+    document.getElementById('statOther').innerText = `₹ ${summary.other.toLocaleString('en-IN')}`;
     document.getElementById('statTotal').innerText = `₹ ${summary.total.toLocaleString('en-IN')}`;
 
-    // 2. Line Chart Logic (Red Theme)
+    // 2. Trend Chart
     const sorted = [...filteredData].sort((a, b) => new Date(a.date) - new Date(b.date));
     const groupedDates = sorted.reduce((acc, curr) => {
         acc[curr.date] = (acc[curr.date] || 0) + curr.cost;
@@ -220,19 +283,25 @@ function updateDashboard(filteredData) {
         data: {
             labels: Object.keys(groupedDates),
             datasets: [{
-                label: 'Daily Cost (₹)',
+                label: 'Cost (₹)',
                 data: Object.values(groupedDates),
                 borderColor: '#ef4444',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                backgroundColor: 'rgba(239, 68, 68, 0.05)',
                 fill: true,
-                tension: 0.3,
-                pointBackgroundColor: '#dc2626'
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: '#ef4444',
+                pointHoverRadius: 8
             }]
         },
-        options: { maintainAspectRatio: false, responsive: true }
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } }
+        }
     });
 
-    // 3. Bar Chart Logic (Orange Theme)
+    // 3. Vehicle Chart
     const groupedVehicles = filteredData.reduce((acc, curr) => {
         acc[curr.vehicle] = (acc[curr.vehicle] || 0) + curr.cost;
         return acc;
@@ -244,12 +313,17 @@ function updateDashboard(filteredData) {
         data: {
             labels: Object.keys(groupedVehicles),
             datasets: [{
-                label: 'Total Cost (₹)',
                 data: Object.values(groupedVehicles),
-                backgroundColor: '#f97316'
+                backgroundColor: '#f97316',
+                borderRadius: 10,
+                barThickness: 25
             }]
         },
-        options: { maintainAspectRatio: false, responsive: true }
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } }
+        }
     });
 }
 
@@ -262,13 +336,9 @@ function applyFilters() {
         const rowD = new Date(d.date).setHours(0,0,0,0);
         const startD = from ? new Date(from).setHours(0,0,0,0) : null;
         const endD = to ? new Date(to).setHours(0,0,0,0) : null;
-
-        return (vVal === 'all' || d.vehicle === vVal) &&
-               (!startD || rowD >= startD) &&
-               (!endD || rowD <= endD);
+        return (vVal === 'all' || d.vehicle === vVal) && (!startD || rowD >= startD) && (!endD || rowD <= endD);
     });
 
-    // Table rows sync
     const tableRows = document.querySelectorAll('#expenseTable tbody tr');
     tableRows.forEach((row, idx) => {
         const d = allRowsData[idx];
@@ -278,24 +348,22 @@ function applyFilters() {
         const visible = (vVal === 'all' || d.vehicle === vVal) && (!startD || rowD >= startD) && (!endD || rowD <= endD);
         row.style.display = visible ? '' : 'none';
     });
-
     updateDashboard(filtered);
 }
 
-// Listeners
 document.getElementById('vehicleFilter').addEventListener('change', applyFilters);
 document.getElementById('fromDate').addEventListener('change', applyFilters);
 document.getElementById('toDate').addEventListener('change', applyFilters);
 
-// Excel Export
 function exportTableToExcel() {
     const table = document.getElementById("expenseTable");
+    const headers = ["ID", "Vehicle No", "Indent", "Date", "From", "To", "Charging", "Toll", "Driver AC", "Other", "Remark", "Total"];
     const rows = Array.from(table.querySelectorAll("tbody tr")).filter(r => r.style.display !== 'none');
-    const data = rows.map(r => Array.from(r.querySelectorAll("td")).map(c => c.innerText.replace(/[₹,]/g, '').trim()));
+    const data = rows.map(r => Array.from(r.querySelectorAll("td")).map(c => c.innerText.replace(/[₹,#]/g, '').trim()));
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([["Vehicle", "Indent", "Date", "Route", "Charging", "Toll", "Total"], ...data]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
     XLSX.utils.book_append_sheet(wb, ws, "FleetReport");
-    XLSX.writeFile(wb, "Fleet_Expense_Red_Theme.xlsx");
+    XLSX.writeFile(wb, "Fleet_Smart_Report.xlsx");
 }
 
 updateDashboard(allRowsData);
