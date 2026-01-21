@@ -1,59 +1,86 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="card upload-card shadow p-4">
-    <h4>📤 Upload Vehicle Expense File</h4>
+<div class="container">
+    <div class="card upload-card shadow-lg p-4">
+        <h4 class="text-center mb-3">📤 Upload Vehicle Expense & Cash Received Files</h4>
 
-    <!-- Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} mt-3">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
 
-    <form method="post" enctype="multipart/form-data" class="mt-3">
-        <input type="file" name="file" class="form-control my-3" required>
-        <button type="submit" class="btn btn-upload w-100">Upload</button>
-    </form>
+        <form method="post" enctype="multipart/form-data" class="mt-4">
+            <!-- Vehicle Expense File -->
+            <label class="form-label fw-semibold">Vehicle Expense File <span class="text-danger">*</span></label>
+            <input
+                type="file"
+                name="file"
+                class="form-control"
+                accept=".xlsx,.xls,.csv"
+                required
+            >
+
+            <!-- Cash Received File (Optional) -->
+            <label class="form-label fw-semibold mt-3">Cash Received File (Optional)</label>
+            <input
+                type="file"
+                name="cash_file"
+                class="form-control"
+                accept=".xlsx,.xls,.csv"
+            >
+
+            <button type="submit" class="btn btn-upload w-100 mt-4">
+                ⬆ Upload Files
+            </button>
+        </form>
+    </div>
 </div>
 
 <style>
-.card.upload-card {
+.upload-card {
     border-radius: 20px;
     padding: 40px 30px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    background: #fff;
+    background: #ffffff;
     max-width: 600px;
-    margin: 50px auto;
+    margin: 60px auto;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-.card.upload-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+
+.upload-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 22px 45px rgba(0, 0, 0, 0.15);
 }
-.card.upload-card h4 {
+
+.upload-card h4 {
     font-weight: 700;
-    margin-bottom: 25px;
     background: linear-gradient(90deg, #ef4444, #dc2626);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
+
 .btn-upload {
     background: linear-gradient(90deg, #f97316, #fb923c);
     border: none;
-    border-radius: 12px;
-    padding: 10px 22px;
+    border-radius: 14px;
+    padding: 12px 24px;
     font-weight: 600;
     color: #fff;
+    letter-spacing: 0.3px;
     transition: all 0.3s ease;
 }
+
 .btn-upload:hover {
     background: linear-gradient(90deg, #fb923c, #f97316);
     transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(249, 115, 22, 0.35);
 }
 </style>
 
