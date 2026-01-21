@@ -60,38 +60,82 @@ def welcome():
 # =========================
 # UPLOAD LOGIC
 # =========================
+
+def clean_columns(df):
+    # simple cleaning: strip spaces and uppercase column names
+    df.columns = df.columns.str.strip().str.upper()
+    return df
+
 @app.route("/upload", methods=["GET", "POST"])
 def upload_file():
     if request.method == "POST":
-        file = request.files.get("file")
-        if not file:
-            flash("Please select a file.", "warning")
+        vehicle_file = request.files.get("file")
+        cash_file = request.files.get("cash_file")
+
+        if not vehicle_file:
+            flash("Vehicle expense file required", "warning")
             return redirect(request.url)
 
         try:
-            if file.filename.endswith(".csv"):
-                df = pd.read_csv(file)
+            # =====================================
+            # VEHICLE EXPENSE FILE
+            # =====================================
+            if vehicle_file.filename.endswith(".csv"):
+                df = pd.read_csv(vehicle_file)
             else:
-                df = pd.read_excel(file)
+                df = pd.read_excel(vehicle_file)
 
-            df = clean_columns(df)
+            # Clean column names
+            df.columns = (
+                df.columns.str.strip()
+                .str.upper()
+                .str.replace(" ", "_")
+            )
 
-            db_cols = [
-                "VEHICLE_NO", "INDENT_ID", "TRIP_DATE", "FROM_LOCATION",
-                "TO_LOCATION", "CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT",
-                "OTHER_EXP", "REMARK", "TOTAL_TRIP_COST"
+            # Rename Excel → DB columns (UNCHANGED)
+            df.rename(columns={
+                "VEHICLE_NO": "VEHICLE_NO",
+                "TOTAL_RUNING_KM": "TOTAL_RUNING_KM",
+                "NO_OF_BUKEET": "NO_OF_BUKEET",
+                "CNG_RATE": "CNG_RATE",
+                "USED_CNG": "USED_CNG",
+                "PAY_TO_CNG": "PAY_TO_CNG",
+                "UNLOADING_CHARGE": "UNLOADING_CHARGE",
+                "TOTAL_COST": "TOTAL_COST",
+                "OTHER_EXP": "OTHER_EXP",        # ✅ ADD
+                "ON_ACCOUNT": "ON_ACCOUNT"       # ✅ ADD
+            }, inplace=True)
+
+            # Required columns (including ON_ACCOUNT)
+            required_cols = [
+                "VEHICLE_NO", "DATE", "FROM", "TO",
+                "TOTAL_RUNING_KM", "NO_OF_BUKEET",
+                "CNG_RATE", "USED_CNG", "PAY_TO_CNG",
+                "AVERAGE", "TOLL", "UNLOADING_CHARGE",
+                "OTHER_EXP",                      # ✅ ADD
+                "REMARK", "ADVANCE", "TOTAL_COST",
+                "ON_ACCOUNT"                      # ✅ ADD
             ]
-            for col in db_cols:
+
+            for col in required_cols:
                 if col not in df.columns:
-                    df[col] = None
+                    df[col] = 0
 
-            df["TRIP_DATE"] = pd.to_datetime(df["TRIP_DATE"], errors="coerce")
+            df["DATE"] = pd.to_datetime(df["DATE"], errors="coerce")
 
-            num_cols = ["CHARGING_COST", "TOLL", "DRIVER_ON_ACCOUNT", "OTHER_EXP", "TOTAL_TRIP_COST"]
+            # Numeric columns (including ON_ACCOUNT)
+            num_cols = [
+                "TOTAL_RUNING_KM", "NO_OF_BUKEET",
+                "CNG_RATE", "USED_CNG", "PAY_TO_CNG",
+                "AVERAGE", "TOLL",
+                "UNLOADING_CHARGE",
+                "OTHER_EXP",                      # ✅ ADD
+                "ADVANCE", "TOTAL_COST",
+                "ON_ACCOUNT"                      # ✅ ADD
+            ]
+
             for col in num_cols:
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-
-            df = df.replace({np.nan: None})
 
             conn = get_db_connection()
             cur = conn.cursor()
@@ -99,51 +143,195 @@ def upload_file():
             for _, r in df.iterrows():
                 cur.execute("""
                     INSERT INTO vehicle_expenses (
-                        vehicle_no, indent_id, trip_date,
-                        from_location, to_location,
-                        charging_cost, toll,
-                        driver_on_account, other_exp,
-                        remark, total_trip_cost
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        vehicle_no, date, "FROM", "TO",
+                        total_runing_km, no_of_bukeet,
+                        cng_rate, used_cng, pay_to_cng,
+                        average, toll, unloading_charge,
+                        other_exp,                      -- ✅ ADD
+                        remark, advance, total_cost,
+                        on_account                       -- ✅ ADD
+                    ) VALUES (
+                        %s,%s,%s,%s,
+                        %s,%s,%s,%s,%s,
+                        %s,%s,%s,%s,%s,%s,%s,%s
+                    )
                 """, (
-                    str(r["VEHICLE_NO"]) if r["VEHICLE_NO"] else "",
-                    str(r["INDENT_ID"]) if r["INDENT_ID"] else "",
-                    r["TRIP_DATE"].date() if r["TRIP_DATE"] else None,
-                    str(r["FROM_LOCATION"]) if r["FROM_LOCATION"] else "",
-                    str(r["TO_LOCATION"]) if r["TO_LOCATION"] else "",
-                    float(r["CHARGING_COST"]),
-                    float(r["TOLL"]),
-                    float(r["DRIVER_ON_ACCOUNT"]),
-                    float(r["OTHER_EXP"]),
-                    str(r["REMARK"]) if r["REMARK"] else "",
-                    float(r["TOTAL_TRIP_COST"])
+                    r["VEHICLE_NO"],
+                    r["DATE"].date() if pd.notna(r["DATE"]) else None,
+                    r["FROM"],
+                    r["TO"],
+                    r["TOTAL_RUNING_KM"],
+                    r["NO_OF_BUKEET"],
+                    r["CNG_RATE"],
+                    r["USED_CNG"],
+                    r["PAY_TO_CNG"],
+                    r["AVERAGE"],
+                    r["TOLL"],
+                    r["UNLOADING_CHARGE"],
+                    r["OTHER_EXP"],                 # ✅ ADD
+                    r["REMARK"],
+                    r["ADVANCE"],
+                    r["TOTAL_COST"],
+                    r["ON_ACCOUNT"]                 # ✅ ADD
                 ))
+
+            # =====================================
+            # CASH EXPENSE FILE (UNCHANGED)
+            # =====================================
+            if cash_file:
+                if cash_file.filename.endswith(".csv"):
+                    df_cash = pd.read_csv(cash_file)
+                else:
+                    df_cash = pd.read_excel(cash_file)
+
+                df_cash.columns = (
+                    df_cash.columns.str.strip()
+                    .str.upper()
+                    .str.replace(" ", "_")
+                )
+
+                if "CASH_RECEIVED" not in df_cash.columns:
+                    df_cash["CASH_RECEIVED"] = 0
+
+                if "CASH_RECEIVED_DATE" not in df_cash.columns:
+                    df_cash["CASH_RECEIVED_DATE"] = None
+
+                df_cash["CASH_RECEIVED"] = pd.to_numeric(
+                    df_cash["CASH_RECEIVED"], errors="coerce"
+                ).fillna(0)
+
+                df_cash["CASH_RECEIVED_DATE"] = pd.to_datetime(
+                    df_cash["CASH_RECEIVED_DATE"], errors="coerce"
+                )
+
+                for _, r in df_cash.iterrows():
+                    cur.execute("""
+                        INSERT INTO cash_expenses (
+                            cash_received, cash_received_date
+                        ) VALUES (%s,%s)
+                    """, (
+                        r["CASH_RECEIVED"],
+                        r["CASH_RECEIVED_DATE"].date()
+                        if pd.notna(r["CASH_RECEIVED_DATE"]) else None
+                    ))
 
             conn.commit()
             cur.close()
             conn.close()
 
-            flash("Data Uploaded Successfully! ✅", "success")
+            flash("Vehicle + Cash data uploaded successfully ✅", "success")
             return redirect(url_for("upload_file"))
 
         except Exception as e:
-            flash(f"Error: {str(e)}", "danger")
+            print("UPLOAD ERROR:", e)
+            flash(str(e), "danger")
             return redirect(request.url)
 
     return render_template("upload.html")
 
+
+
+
 # =========================
 # DASHBOARD
 # =========================
+
+
+
 @app.route("/dashboard")
 def dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM vehicle_expenses ORDER BY trip_date DESC NULLS LAST")
-    rows = cur.fetchall()
 
-    cur.execute("SELECT vehicle_no, SUM(total_trip_cost) FROM vehicle_expenses GROUP BY vehicle_no")
-    chart_data = cur.fetchall()
+    # -------------------------------
+    # 1️⃣ All Vehicle Expense Records
+    # -------------------------------
+    cur.execute("""
+        SELECT *
+        FROM vehicle_expenses
+        ORDER BY DATE DESC NULLS LAST
+    """)
+    columns = [desc[0] for desc in cur.description]
+    rows_raw = cur.fetchall()
+
+    rows = []
+    for r in rows_raw:
+        row_dict = dict(zip(columns, r))
+        if row_dict.get("DATE"):
+            row_dict["DATE"] = row_dict["DATE"].strftime("%d-%m-%y")
+        rows.append(row_dict)
+
+    # -------------------------------
+    # 2️⃣ Amount Received (Card Fixed)
+    # -------------------------------
+    cur.execute("""
+        SELECT COALESCE(SUM(cash_received),0)
+        FROM cash_expenses
+    """)
+    total_cash_received = float(cur.fetchone()[0] or 0)
+
+    # -------------------------------
+    # 3️⃣ Vehicle-wise Summary + Revenue
+    # -------------------------------
+    cur.execute("""
+        SELECT
+            VEHICLE_NO,
+            COALESCE(SUM(ADVANCE),0)           AS driver_advance,
+            COALESCE(SUM(TOTAL_COST),0)        AS total_trip_cost,
+            COALESCE(SUM(UNLOADING_CHARGE),0)  AS unloading_charge,
+            COALESCE(SUM(total_runing_km),0)   AS total_km,
+            COALESCE(AVG(AVERAGE),0)           AS avg_mileage,
+            COALESCE(AVG(CNG_RATE),0)          AS cng_rate,
+            COALESCE(SUM(ON_ACCOUNT),0)        AS on_account   -- 🔑 Include ON_ACCOUNT
+        FROM vehicle_expenses
+        GROUP BY VEHICLE_NO
+        ORDER BY VEHICLE_NO
+    """)
+    summary_rows = cur.fetchall()
+
+    summary = []
+    remaining_amount = total_cash_received  # 🔑 Wallet-style deduction
+    EV_COST = 6980  # Fixed EV cost per vehicle
+
+    for r in summary_rows:
+        vehicle = r[0]
+        driver_advance = float(r[1])
+        total_trip_cost = float(r[2])           # ✅ Now this is used as total cost
+        unloading_charge = float(r[3])
+        total_km = float(r[4])
+        avg_mileage = float(r[5])
+        cng_rate = float(r[6])
+        on_account = float(r[7])                # 🔑 Deduct this per vehicle
+
+        # -------------------------------
+        # Revenue Formula (unchanged)
+        # -------------------------------
+        fuel_cost = 0
+        if avg_mileage > 0:
+            fuel_cost = ((total_km + 20) / avg_mileage) * cng_rate
+        revenue = unloading_charge - fuel_cost
+
+        # -------------------------------
+        # 🔑 Wallet-style sequential deduction including on_account
+        # -------------------------------
+        vehicle_balance = remaining_amount - total_trip_cost - on_account
+        pending_balance = vehicle_balance if vehicle_balance > 0 else 0
+
+        # Deduct for next vehicle
+        remaining_amount = vehicle_balance
+
+        summary.append({
+            "vehicle": vehicle,
+            "driver_advance": driver_advance,
+            "total_trip_cost": total_trip_cost,        # ✅ Used as total cost
+            "amount_received": total_cash_received,   # 💳 Card fixed
+            "total_cost": total_trip_cost,            # ✅ Keep same as total_trip_cost
+            "revenue": round(revenue, 2),
+            "on_account": on_account,                 # 🔑 Show per vehicle
+            "balance": vehicle_balance,               # Wallet-style
+            "ev_cost": EV_COST,
+            "pending_balance": pending_balance
+        })
 
     cur.close()
     conn.close()
@@ -151,9 +339,13 @@ def dashboard():
     return render_template(
         "dashboard.html",
         rows=rows,
-        vehicles=[c[0] for c in chart_data],
-        totals=[float(c[1]) for c in chart_data]
+        columns=columns,
+        summary=summary,
+        amount_received=total_cash_received  # 💳 Card fixed
     )
+
+
+
 
 if __name__ == "__main__":
     # Heroku ke liye port configuration
