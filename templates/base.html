@@ -12,38 +12,31 @@
         :root {
             --navbar-red: #ef4444;
             --navbar-red-dark: #dc2626;
-            --orange: #f97316;
-            --bg: #ffffff;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
+            background-color: #f8fafc;
             margin: 0;
         }
 
-        /* Navbar */
+        /* ✅ NAVBAR FIX */
         .navbar {
             background: linear-gradient(90deg, var(--navbar-red), var(--navbar-red-dark));
-            border-bottom: 3px solid var(--navbar-red-dark);
             padding: 12px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1050; /* 🔥 MOST IMPORTANT */
         }
 
         .navbar-brand {
             font-weight: 700;
-            letter-spacing: .5px;
+            color: white !important;
             display: flex;
             align-items: center;
             gap: 10px;
-            color: white !important;
         }
 
-        .navbar-brand i {
-            font-size: 1.4rem;
-            color: white;
-        }
-
-        /* Nav Buttons Style */
         .nav-btn {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -53,27 +46,23 @@
             text-decoration: none;
             font-weight: 500;
             font-size: 0.9rem;
-            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             gap: 8px;
+            cursor: pointer;
+            pointer-events: auto; /* 🔥 CLICK ENABLE */
         }
 
         .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.35);
         }
 
-        .nav-btn i {
-            font-size: 1.1rem;
-        }
-
-        /* Main container */
         .main-container {
             padding: 30px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* Footer */
         footer {
             text-align: center;
             font-size: 13px;
@@ -83,13 +72,14 @@
         }
     </style>
 </head>
+
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
+
         <a class="navbar-brand" href="/">
-            <i class="bi bi-truck"></i>
-            DRONA LOGITECH
+            <i class="bi bi-truck"></i> DRONA LOGITECH
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -98,12 +88,20 @@
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <div class="ms-auto d-flex gap-2 mt-2 mt-lg-0">
+
                 <a href="/dashboard" class="nav-btn">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
+
                 <a href="/upload" class="nav-btn">
                     <i class="bi bi-cloud-arrow-up"></i> Upload Data
                 </a>
+
+                <!-- ✅ ADVANCE PREDICTION BUTTON -->
+                <a href="/advance-prediction" class="nav-btn">
+                    <i class="bi bi-cpu"></i> Predict Advance
+                </a>
+
             </div>
         </div>
     </div>

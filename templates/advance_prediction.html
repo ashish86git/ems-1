@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold text-danger">
+      <i class="bi bi-cash-coin me-2"></i>Advance Prediction
+    </h4>
+  </div>
+
+  <!-- Prediction Card -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+
+      <div class="row g-3">
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Total Running KM</label>
+          <input id="km" type="number" class="form-control" placeholder="e.g. 420">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Vehicle Average</label>
+          <input id="avg" type="number" class="form-control" placeholder="e.g. 18">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">CNG Rate (₹)</label>
+          <input id="rate" type="number" class="form-control" placeholder="e.g. 92">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Unloading Charge (₹)</label>
+          <input id="unload" type="number" class="form-control" placeholder="e.g. 500">
+        </div>
+
+      </div>
+
+      <!-- Button -->
+      <div class="mt-4 text-end">
+        <button class="btn btn-danger px-4" onclick="predictAdvance()">
+          <i class="bi bi-calculator me-1"></i> Predict Advance
+        </button>
+      </div>
+
+      <!-- Result -->
+      <div id="resultBox" class="alert alert-success mt-4 d-none">
+        <h5 class="mb-1">✅ Minimum Advance Required</h5>
+        <span class="fs-4 fw-bold">₹ <span id="resultAmount">0</span></span>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function predictAdvance(){
+
+  fetch("/predict-advance",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      total_runing_km: Number(document.getElementById("km").value),
+      average: Number(document.getElementById("avg").value),
+      cng_rate: Number(document.getElementById("rate").value),
+      unloading_charge: Number(document.getElementById("unload").value)
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("resultAmount").innerText =
+      Math.round(data.minimum_advance_required);
+    document.getElementById("resultBox").classList.remove("d-none");
+  })
+  .catch(()=>{
+    alert("Prediction failed. Please check inputs.");
+  });
+
+}
+</script>
+
+{% endblock %}
