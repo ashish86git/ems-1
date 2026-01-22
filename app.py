@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import pandas as pd
 import psycopg2
 import os
@@ -348,6 +348,40 @@ def dashboard():
         amount_received=total_cash_received   # CARD value only
     )
 
+
+
+
+# ---------------- UI PAGE ----------------
+@app.route("/advance-prediction")
+def advance_prediction():
+    return render_template("advance_prediction.html")
+
+
+# ---------------- PREDICTION API ----------------
+@app.route("/predict-advance", methods=["POST"])
+def predict_advance():
+    data = request.get_json()
+
+    km = float(data.get("total_runing_km", 0))
+    rate = float(data.get("cng_rate", 0))
+    unload = float(data.get("unloading_charge", 0))
+    avg = float(data.get("average", 0))
+
+    # 🔢 Minimum cost logic (SAFE & CONSERVATIVE)
+    fuel_cost = 0
+    if avg > 0:
+        fuel_cost = (km / avg) * rate
+
+    buffer = fuel_cost * 0.15  # 15% safety buffer
+
+    minimum_advance = fuel_cost + buffer + unload
+
+    return jsonify({
+        "fuel_cost": round(fuel_cost, 2),
+        "buffer": round(buffer, 2),
+        "unloading_charge": unload,
+        "minimum_advance_required": round(minimum_advance, 2)
+    })
 
 
 
