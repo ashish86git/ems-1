@@ -262,7 +262,7 @@ def dashboard():
         rows.append(row_dict)
 
     # -------------------------------
-    # 2️⃣ Amount Received (Card Fixed)
+    # 2️⃣ Amount Received (CARD FIXED)
     # -------------------------------
     cur.execute("""
         SELECT COALESCE(SUM(cash_received),0)
@@ -271,7 +271,7 @@ def dashboard():
     total_cash_received = float(cur.fetchone()[0] or 0)
 
     # -------------------------------
-    # 3️⃣ Vehicle-wise Summary + Revenue
+    # 3️⃣ Vehicle-wise Summary
     # -------------------------------
     cur.execute("""
         SELECT
@@ -282,7 +282,7 @@ def dashboard():
             COALESCE(SUM(total_runing_km),0)   AS total_km,
             COALESCE(AVG(AVERAGE),0)           AS avg_mileage,
             COALESCE(AVG(CNG_RATE),0)          AS cng_rate,
-            COALESCE(SUM(ON_ACCOUNT),0)        AS on_account   -- 🔑 Include ON_ACCOUNT
+            COALESCE(SUM(ON_ACCOUNT),0)        AS on_account
         FROM vehicle_expenses
         GROUP BY VEHICLE_NO
         ORDER BY VEHICLE_NO
@@ -290,46 +290,50 @@ def dashboard():
     summary_rows = cur.fetchall()
 
     summary = []
-    remaining_amount = total_cash_received  # 🔑 Wallet-style deduction
-    EV_COST = 6980  # Fixed EV cost per vehicle
+    remaining_amount = total_cash_received   # 🔑 Wallet logic unchanged
+    EV_COST = 6980                           # 🔑 Fixed EV cost
 
     for r in summary_rows:
         vehicle = r[0]
         driver_advance = float(r[1])
-        total_trip_cost = float(r[2])           # ✅ Now this is used as total cost
+        total_trip_cost = float(r[2])
         unloading_charge = float(r[3])
         total_km = float(r[4])
         avg_mileage = float(r[5])
         cng_rate = float(r[6])
-        on_account = float(r[7])                # 🔑 Deduct this per vehicle
+        on_account = float(r[7])
 
         # -------------------------------
-        # Revenue Formula (unchanged)
+        # Revenue Calculation (UNCHANGED)
         # -------------------------------
         fuel_cost = 0
         if avg_mileage > 0:
             fuel_cost = ((total_km + 20) / avg_mileage) * cng_rate
+
         revenue = unloading_charge - fuel_cost
 
         # -------------------------------
-        # 🔑 Wallet-style sequential deduction including on_account
+        # Wallet Deduction (UNCHANGED)
         # -------------------------------
         vehicle_balance = remaining_amount - total_trip_cost - on_account
         pending_balance = vehicle_balance if vehicle_balance > 0 else 0
-
-        # Deduct for next vehicle
         remaining_amount = vehicle_balance
+
+        # -------------------------------
+        # ✅ EV COST ADDED ONLY TO TOTAL COST (DISPLAY)
+        # -------------------------------
+        display_total_cost = total_trip_cost + EV_COST
 
         summary.append({
             "vehicle": vehicle,
             "driver_advance": driver_advance,
-            "total_trip_cost": total_trip_cost,        # ✅ Used as total cost
-            "amount_received": total_cash_received,   # 💳 Card fixed
-            "total_cost": total_trip_cost,            # ✅ Keep same as total_trip_cost
+            "total_trip_cost": total_trip_cost,        # DB cost (actual)
+            "amount_received": total_cash_received,   # CARD fixed
+            "total_cost": display_total_cost,          # ✅ EV cost added
             "revenue": round(revenue, 2),
-            "on_account": on_account,                 # 🔑 Show per vehicle
-            "balance": vehicle_balance,               # Wallet-style
-            "ev_cost": EV_COST,
+            "on_account": on_account,
+            "balance": vehicle_balance,
+            "ev_cost": EV_COST,                        # Optional display
             "pending_balance": pending_balance
         })
 
@@ -341,7 +345,7 @@ def dashboard():
         rows=rows,
         columns=columns,
         summary=summary,
-        amount_received=total_cash_received  # 💳 Card fixed
+        amount_received=total_cash_received   # CARD value only
     )
 
 
