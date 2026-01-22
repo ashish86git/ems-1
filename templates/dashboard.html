@@ -1,23 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+    /* Headers ko Capital karne ke liye */
+    #summaryTable thead th, #expenseTable thead th {
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+    /* Table cells alignment */
+    .table td { vertical-align: middle; }
+</style>
+
 <div class="container-fluid mt-4">
 
-<!-- 🚨 LOSS ALERT -->
 <div id="lossAlert" class="alert alert-danger fw-bold d-none">
     🚨 Loss Alert: Some vehicles are running in loss
 </div>
 
-<!-- ================= FILTER BAR ================= -->
 <div class="card shadow-sm border-0 mb-4 bg-light">
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-3">
                 <label class="form-label fw-bold">Select Vehicle</label>
                 <select id="vehicleFilter" class="form-select">
-                    <option value="all">All Vehicles</option>
+                    <option value="all">ALL VEHICLES</option>
                     {% for s in summary %}
-                        <option value="{{ s.vehicle|trim }}">{{ s.vehicle|trim }}</option>
+                        <option value="{{ s.vehicle|trim }}">{{ s.vehicle|trim|upper }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -30,84 +39,79 @@
                 <input type="date" id="endDate" class="form-control">
             </div>
             <div class="col-md-3 d-flex align-items-end gap-2">
-                <button class="btn btn-primary w-100" onclick="applyFilter()">Apply</button>
+                <button class="btn btn-primary w-100" onclick="applyFilter()">Apply Filter</button>
                 <button class="btn btn-outline-secondary" onclick="resetFilter()">Reset</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ================= SUMMARY CARDS ================= -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
+    <div class="col">
+        <div class="card text-center shadow-sm h-100">
             <div class="card-body">
-                <small>Amount Received</small>
-                <h4 id="cardAmountReceived">₹{{ amount_received }}</h4>
+                <small class="text-muted fw-bold">AMOUNT RECEIVED</small>
+                <h4 id="cardAmountReceived" class="mb-0 mt-1">₹{{ amount_received }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center shadow-sm h-100 border-primary border-2">
+            <div class="card-body">
+                <small class="text-primary fw-bold">TOTAL COST</small>
+                <h4 id="cardTotalCost" class="mb-0 mt-1 text-primary">₹0</h4>
+                <div class="mt-1" style="font-size: 0.65rem; color: #6c757d;">
+                    <i class="fas fa-info-circle"></i> Trip Cost + EV Cost
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted fw-bold">PETTY CASH</small>
+                <h4 id="cardPetiCash" class="mb-0 mt-1">₹0</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted fw-bold">BALANCE</small>
+                <h4 id="cardBalance" class="mb-0 mt-1">₹0</h4>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <small>Total Cost</small>
-                <h4 id="cardTotalCost">₹0</h4>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <small>Balance</small>
-                <h4 id="cardBalance">₹0</h4>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <small>EV Cost</small>
-                <h4>₹ 6,980</h4>
-            </div>
-        </div>
-    </div>
+<!--    <div class="col">-->
+<!--        <div class="card text-center shadow-sm h-100">-->
+<!--            <div class="card-body">-->
+<!--                <small class="text-muted fw-bold">EV COST</small>-->
+<!--                <h4 class="mb-0 mt-1">₹ 6,980</h4>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
 </div>
 
-<!-- ================= CHARTS ================= -->
 <div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-success text-white">📊 Monthly Revenue</div>
-            <div class="card-body"><canvas id="monthlyRevenueChart"></canvas></div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-info text-white">📈 Date-wise Revenue</div>
-            <div class="card-body"><canvas id="dateRevenueChart"></canvas></div>
-        </div>
-    </div>
+    <div class="col-md-6"><div class="card shadow-sm"><div class="card-body"><canvas id="monthlyRevenueChart"></canvas></div></div></div>
+    <div class="col-md-6"><div class="card shadow-sm"><div class="card-body"><canvas id="dateRevenueChart"></canvas></div></div></div>
 </div>
 
-<button class="btn btn-success mb-3" onclick="exportExcel()">📤 Export Excel</button>
+<button class="btn btn-success mb-3 shadow-sm" onclick="exportExcel()">📤 Export Vehicle Summary</button>
 
-<!-- ================= SUMMARY TABLE ================= -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white">🚚 Vehicle Summary</div>
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-header bg-dark text-white fw-bold">🚚 VEHICLE SUMMARY</div>
     <div class="table-responsive">
-        <table class="table table-bordered" id="summaryTable">
-            <thead>
+        <table class="table table-hover table-bordered mb-0" id="summaryTable">
+            <thead class="table-light">
                 <tr>
                     <th>Vehicle</th>
                     <th>Driver Advance</th>
                     <th>Total Trip Cost</th>
                     <th>Amount Received</th>
                     <th>Total Cost</th>
-                    <th>On Account</th>
+                    <th>Peti Cash</th>
                     <th>Balance</th>
                     <th>EV Cost</th>
                     <th>Pending</th>
@@ -134,11 +138,10 @@
     </div>
 </div>
 
-<!-- ================= DETAIL TABLE ================= -->
-<div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">📋 Expense Details</div>
-    <div class="table-responsive" style="max-height:420px;">
-        <table class="table table-sm table-striped" id="expenseTable">
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-primary text-white fw-bold">📋 EXPENSE DETAILS</div>
+    <div class="table-responsive" style="max-height:500px;">
+        <table class="table table-sm table-striped table-hover mb-0" id="expenseTable">
             <thead class="table-dark sticky-top">
                 <tr>{% for col in columns %}<th>{{ col }}</th>{% endfor %}</tr>
             </thead>
@@ -155,44 +158,68 @@
 
 </div>
 
-<!-- ================= SCRIPTS ================= -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
 const totalCardAmountReceived = parseAmount("{{ amount_received }}");
+const EV_COST = 6980;   // ✅ Fixed EV cost (ONLY for total cost card)
 
-function parseAmount(v){ return Number(String(v).replace(/[^0-9.-]/g,''))||0; }
+function parseAmount(v){
+    if(!v) return 0;
+    return Number(String(v).replace(/[^0-9.-]/g,'')) || 0;
+}
 
 function applyFilter(){
     let vehicle = document.getElementById("vehicleFilter").value.trim();
-    let start = document.getElementById("startDate").value;
-    let end = document.getElementById("endDate").value;
 
     let remaining = totalCardAmountReceived;
-    let totalCostSum = 0;
-    let totalBalance = 0;
+    let totalTripCostSum = 0;
+    let totalPetiCashSum = 0;
 
+    // -------------------------------
+    // 1️⃣ SUMMARY TABLE FILTER + WALLET LOGIC
+    // -------------------------------
     document.querySelectorAll("#summaryTable tbody tr").forEach(tr=>{
-        let show = vehicle==="all"||tr.dataset.vehicle===vehicle;
-        tr.style.display = show?"":"none";
+        let show = (vehicle === "all" || tr.dataset.vehicle === vehicle);
+        tr.style.display = show ? "" : "none";
 
         if(show){
-            let cost = parseAmount(tr.children[4].innerText);
-            totalCostSum += cost;
+            let tripCost = parseAmount(tr.children[2].innerText); // Total Trip Cost
+            let petiCash = parseAmount(tr.children[5].innerText); // Petty Cash / On Account
 
-            remaining -= cost;
-            let balance = remaining;
-            totalBalance += balance;
+            totalTripCostSum += tripCost;
+            totalPetiCashSum += petiCash;
 
-            tr.children[6].innerText = balance; // wallet-style
+            // ✅ Wallet logic UNCHANGED (EV cost NOT included)
+            remaining -= (tripCost + petiCash);
+            tr.children[6].innerText = remaining;
         }
     });
 
-    // Card display
-    document.getElementById("cardAmountReceived").innerText = "₹" + totalCardAmountReceived;
-    document.getElementById("cardTotalCost").innerText = "₹" + totalCostSum;
-    document.getElementById("cardBalance").innerText = "₹" + remaining;
+    // -------------------------------
+    // 2️⃣ EXPENSE TABLE FILTER
+    // -------------------------------
+    document.querySelectorAll("#expenseTable tbody tr").forEach(tr=>{
+        let show = (vehicle === "all" || tr.dataset.vehicle === vehicle);
+        tr.style.display = show ? "" : "none";
+    });
+
+    // -------------------------------
+    // 3️⃣ UPDATE CARDS
+    // -------------------------------
+    document.getElementById("cardAmountReceived").innerText =
+        "₹" + totalCardAmountReceived.toLocaleString();
+
+    // ✅ TOTAL COST = Trip Cost + EV Cost (Petty Cash EXCLUDED)
+    document.getElementById("cardTotalCost").innerText =
+        "₹" + (totalTripCostSum + EV_COST).toLocaleString();
+
+    document.getElementById("cardPetiCash").innerText =
+        "₹" + totalPetiCashSum.toLocaleString();
+
+    document.getElementById("cardBalance").innerText =
+        "₹" + remaining.toLocaleString();
 
     checkLossAlert();
     buildMonthlyRevenueChart();
@@ -200,49 +227,82 @@ function applyFilter(){
 }
 
 function resetFilter(){
-    document.getElementById("vehicleFilter").value="all";
-    document.getElementById("startDate").value="";
-    document.getElementById("endDate").value="";
+    document.getElementById("vehicleFilter").value = "all";
+    document.getElementById("startDate").value = "";
+    document.getElementById("endDate").value = "";
     applyFilter();
 }
 
 function checkLossAlert(){
-    let loss=false;
+    let loss = false;
     document.querySelectorAll("#summaryTable tbody tr").forEach(tr=>{
-        if(tr.style.display!=="none" && parseAmount(tr.children[9].innerText)<0) loss=true;
+        if(tr.style.display !== "none" && parseAmount(tr.children[9].innerText) < 0){
+            loss = true;
+        }
     });
-    document.getElementById("lossAlert").classList.toggle("d-none",!loss);
+    document.getElementById("lossAlert").classList.toggle("d-none", !loss);
 }
 
-function buildMonthlyRevenueChart(){drawChart("monthlyRevenueChart",true);}
-function buildDateRevenueChart(){drawChart("dateRevenueChart",false);}
-function drawChart(id,monthly){
-    let map={};
+/* -------------------------------
+   CHARTS (UNCHANGED)
+-------------------------------- */
+function buildMonthlyRevenueChart(){ drawChart("monthlyRevenueChart", true); }
+function buildDateRevenueChart(){ drawChart("dateRevenueChart", false); }
+
+function drawChart(id, monthly){
+    let map = {};
     document.querySelectorAll("#expenseTable tbody tr").forEach(tr=>{
-        if(tr.style.display==="none") return;
-        let d = tr.dataset.date; if(!d) return;
-        let key = monthly ? d.substr(3,5)+"-"+d.substr(6,8) : d;
-        map[key] = (map[key]||0) + 1;
+        if(tr.style.display === "none") return;
+        let d = tr.dataset.date;
+        if(!d) return;
+        let key = monthly ? d.substr(3,5) + "-" + d.substr(6,8) : d;
+        map[key] = (map[key] || 0) + 1;
     });
-    if(window[id]) window[id].destroy();
-    window[id] = new Chart(document.getElementById(id),{
-        type: monthly?"bar":"line",
-        data: { labels:Object.keys(map), datasets:[{label:"Revenue", data:Object.values(map)}] }
+
+    if(window[id] instanceof Chart) window[id].destroy();
+
+    window[id] = new Chart(document.getElementById(id), {
+        type: monthly ? "bar" : "line",
+        data: {
+            labels: Object.keys(map),
+            datasets: [{
+                label: "Trips Count",
+                data: Object.values(map),
+                backgroundColor: '#0d6efd'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
     });
 }
 
 function exportExcel(){
-    let wb = XLSX.utils.book_new(), data = [["Vehicle","Total Cost","Revenue"]];
-    document.querySelectorAll("#summaryTable tbody tr").forEach(tr=>{
-        if(tr.style.display==="none") return;
-        data.push([tr.children[0].innerText, tr.children[4].innerText, tr.children[9].innerText]);
+    let wb = XLSX.utils.book_new();
+    let data = [];
+
+    let headers = [];
+    document.querySelectorAll("#summaryTable thead th").forEach(th=>{
+        headers.push(th.innerText.toUpperCase());
     });
+    data.push(headers);
+
+    document.querySelectorAll("#summaryTable tbody tr").forEach(tr=>{
+        if(tr.style.display !== "none"){
+            let row = [];
+            Array.from(tr.children).forEach(td=>row.push(td.innerText));
+            data.push(row);
+        }
+    });
+
     let ws = XLSX.utils.aoa_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, "Revenue");
-    XLSX.writeFile(wb, "Revenue_Report.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Vehicle Summary");
+    XLSX.writeFile(wb, "Summary_Report.xlsx");
 }
 
 document.addEventListener("DOMContentLoaded", applyFilter);
 </script>
+
 
 {% endblock %}
